@@ -4,8 +4,8 @@ variable "mumbai_azs" {
   default     = ["ap-south-1a", "ap-south-1b"]
 }
 
-variable "singapore_azs" {
+variable "nv_azs" {
   type        = list(string)
   description = "Availability Zones"
-  default     = ["ap-southeast-1a", "ap-southeast-1b"]
+  default     = ["us-east-1a", "us-east-1b"]
 }

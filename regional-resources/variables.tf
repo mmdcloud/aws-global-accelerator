@@ -11,3 +11,5 @@ variable "private_subnet_cidrs" {
 }
 
 variable "azs" {}
+
+variable "region" {}

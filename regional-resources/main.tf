@@ -71,14 +71,33 @@ resource "aws_security_group" "security_group" {
   }
 }
 
+data "aws_ami" "ubuntu" {
+
+    most_recent = true
+
+    filter {
+        name   = "name"
+        values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    }
+
+    filter {
+        name = "virtualization-type"
+        values = ["hvm"]
+    }
+
+    owners = ["099720109477"]
+}
+
 # EC2 Instance
 resource "aws_instance" "ec2_instance" {
-  ami                         = "ami-0a0e5d9c7acc336f1"
+  ami                         = data.aws_ami.ubuntu.id
   instance_type               = "t2.micro"
   ebs_optimized               = false
   subnet_id                   = aws_subnet.public_subnets[0].id
-  key_name                    = "shiv"
-  user_data                   = filebase64("${path.module}/scripts/user_data.sh")
+  key_name                    = "surajm"
+  user_data                   = base64encode(templatefile("${path.module}/../files/user_data.sh", {
+    region  = var.region
+  }))
   vpc_security_group_ids      = [aws_security_group.security_group.id]
   associate_public_ip_address = true
   tags = {

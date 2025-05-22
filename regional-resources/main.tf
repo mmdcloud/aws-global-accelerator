@@ -94,7 +94,7 @@ resource "aws_instance" "ec2_instance" {
   instance_type               = "t2.micro"
   ebs_optimized               = false
   subnet_id                   = aws_subnet.public_subnets[0].id
-  key_name                    = "surajm"
+  # key_name                    = "madmaxkeypair"
   user_data                   = base64encode(templatefile("${path.module}/../files/user_data.sh", {
     region  = var.region
   }))

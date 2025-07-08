@@ -1,0 +1,42 @@
+digraph INFRA {
+  node [ color = "black", fillcolor = "#E6E6E6", height =1, style = "filled,bold,rounded", fontname = "Arial" ];
+  "vpc" [ label = "vpc
+(aws_vpc)", shape =rectangle ];
+  "public_subnets" [ label = "public_subnets
+(aws_subnet)", shape =rectangle ];
+  "private_subnets" [ label = "private_subnets
+(aws_subnet)", shape =rectangle ];
+  "igw" [ label = "igw
+(aws_internet_gateway)", shape =rectangle, fillcolor = "#E78F81" ];
+  "route_table" [ label = "route_table
+(aws_route_table)", shape =rectangle ];
+  "route_table_association" [ label = "route_table_association
+(aws_route_table_association)", shape =rectangle ];
+  "security_group" [ label = "security_group
+(aws_security_group)", shape =rectangle ];
+  "ec2_instance" [ label = "ec2_instance
+(aws_instance)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "ga" [ label = "ga
+(aws_globalaccelerator_accelerator)", shape =rectangle, fillcolor = "#E78F81" ];
+  "ga_listener" [ label = "ga_listener
+(aws_globalaccelerator_listener)", shape =rectangle, fillcolor = "#E78F81" ];
+  "ga_endpoint_group" [ label = "ga_endpoint_group
+(aws_globalaccelerator_endpoint_group)", shape =rectangle, fillcolor = "#E78F81" ];
+  "ga_endpoint_group2" [ label = "ga_endpoint_group2
+(aws_globalaccelerator_endpoint_group)", shape =rectangle, fillcolor = "#E78F81" ];
+  "public_subnets" -> "vpc";
+  "private_subnets" -> "vpc";
+  "igw" -> "vpc";
+  "route_table" -> "vpc";
+  "route_table" -> "igw";
+  "route_table_association" -> "public_subnets";
+  "route_table_association" -> "route_table";
+  "security_group" -> "vpc";
+  "ec2_instance" -> "public_subnets";
+  "ec2_instance" -> "security_group";
+  "ga_listener" -> "ga";
+  "ga_endpoint_group" -> "ga_listener";
+  "ga_endpoint_group" -> "ec2_instance";
+  "ga_endpoint_group2" -> "ga_listener";
+  "ga_endpoint_group2" -> "ec2_instance";
+}

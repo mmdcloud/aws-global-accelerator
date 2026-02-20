@@ -1,73 +1,53 @@
-resource "aws_vpc" "vpc" {
-  cidr_block = "10.0.0.0/16"
+# -----------------------------------------------------------------------------------------
+# VPC Configuration
+# -----------------------------------------------------------------------------------------
+module "vpc" {
+  source                  = "../modules/vpc"
+  vpc_name                = "vpc"
+  vpc_cidr                = "10.0.0.0/16"
+  azs                     = var.azs
+  public_subnets          = var.public_subnets
+  private_subnets         = var.private_subnets
+  database_subnets        = []
+  enable_dns_hostnames    = true
+  enable_dns_support      = true
+  create_igw              = true
+  map_public_ip_on_launch = true
+  enable_nat_gateway      = true
+  single_nat_gateway      = false
+  one_nat_gateway_per_az  = true
   tags = {
-    Name = "vpc"
+    Name = "vpc"    
   }
-}
-
-resource "aws_subnet" "public_subnets" {
-  count             = length(var.public_subnet_cidrs)
-  vpc_id            = aws_vpc.vpc.id
-  cidr_block        = element(var.public_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
-  tags = {
-    Name = "public subnet ${count.index + 1}"
-  }
-}
-
-resource "aws_subnet" "private_subnets" {
-  count             = length(var.private_subnet_cidrs)
-  vpc_id            = aws_vpc.vpc.id
-  cidr_block        = element(var.private_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
-  tags = {
-    Name = "private subnet ${count.index + 1}"
-  }
-}
-
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.vpc.id
-  tags = {
-    Name = "igw"
-  }
-}
-
-resource "aws_route_table" "route_table" {
-  vpc_id = aws_vpc.vpc.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-  tags = {
-    Name = "route table"
-  }
-}
-
-resource "aws_route_table_association" "route_table_association" {
-  count          = length(var.public_subnet_cidrs)
-  subnet_id      = element(aws_subnet.public_subnets[*].id, count.index)
-  route_table_id = aws_route_table.route_table.id
 }
 
 # Security Group Creation
-resource "aws_security_group" "security_group" {
-  name   = "ecs-security-group"
-  vpc_id = aws_vpc.vpc.id
-
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = -1
-    self        = "false"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "any"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+module "security_group" {
+  source = "../modules/security-groups"
+  name   = "security-group"
+  vpc_id = module.vpc.vpc_id
+  ingress_rules = [
+    {
+      description     = "ALL Traffic"
+      from_port       = 0
+      to_port         = 0
+      protocol        = "tcp"
+      security_groups = []
+      cidr_blocks     = ["0.0.0.0/0"]
+    }
+  ]
+  egress_rules = [
+    {
+      description     = "Allow outbound traffic to al"
+      from_port       = 0
+      to_port         = 0
+      protocol        = "-1"
+      cidr_blocks     = ["0.0.0.0/0"]
+      security_groups = []
+    }
+  ]
+  tags = {
+    Name = "security-group"
   }
 }
 
@@ -88,19 +68,33 @@ data "aws_ami" "ubuntu" {
     owners = ["099720109477"]
 }
 
+data "aws_key_pair" "key_pair" {
+  key_name = "maxmaxkeypair"
+}
+
 # EC2 Instance
-resource "aws_instance" "ec2_instance" {
-  ami                         = data.aws_ami.ubuntu.id
+module "ec2_instance" {
+  source = "../modules/ec2"
+
+  instance_name               = "EC2 Machine"
+  ami_id                      = data.aws_ami.ubuntu.id
   instance_type               = "t2.micro"
-  ebs_optimized               = false
-  subnet_id                   = aws_subnet.public_subnets[0].id
-  # key_name                    = "madmaxkeypair"
+  key_name                    = data.aws_key_pair.key_pair.key_name
+  subnet_id                   = module.vpc.public_subnets[0]
+  security_group_ids          = [module.security_group.id]
+  associate_public_ip_address = true
+  monitoring                  = true
+
+  metadata_options = {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+  }
+
   user_data                   = base64encode(templatefile("${path.module}/../files/user_data.sh", {
     region  = var.region
   }))
-  vpc_security_group_ids      = [aws_security_group.security_group.id]
-  associate_public_ip_address = true
+
   tags = {
-    Name = "ec2-instance"
+    Name    = "ec2-instance"
   }
 }

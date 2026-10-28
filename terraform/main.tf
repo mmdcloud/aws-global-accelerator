@@ -21,6 +21,11 @@ resource "aws_globalaccelerator_accelerator" "ga" {
   name            = "ga"
   ip_address_type = "IPV4"
   enabled         = true
+
+  timeouts {
+    create = "1h"
+    update = "1h"
+  }
 }
 
 resource "aws_globalaccelerator_listener" "ga_listener" {
@@ -37,19 +42,38 @@ resource "aws_globalaccelerator_listener" "ga_listener" {
 resource "aws_globalaccelerator_endpoint_group" "ga_endpoint_group" {
   listener_arn          = aws_globalaccelerator_listener.ga_listener.id
   endpoint_group_region = "us-east-1"
+  health_check_port     = 80
+  health_check_protocol = "TCP"
+
   endpoint_configuration {
     client_ip_preservation_enabled = true
-    endpoint_id                    = module.nv-resources.instance_arn
+    endpoint_id                    = module.nv-resources.instance_id
     weight                         = 50
+  }
+
+  timeouts {
+    create = "45m"
+    update = "45m"
   }
 }
 
 resource "aws_globalaccelerator_endpoint_group" "ga_endpoint_group2" {
   listener_arn          = aws_globalaccelerator_listener.ga_listener.id
   endpoint_group_region = "ap-south-1"
+  health_check_port     = 80
+  health_check_protocol = "TCP"
+
   endpoint_configuration {
     client_ip_preservation_enabled = true
-    endpoint_id                    = module.mumbai-resources.instance_arn
+    endpoint_id                    = module.mumbai-resources.instance_id
     weight                         = 50
   }
+
+  timeouts {
+    create = "45m"
+    update = "45m"
+  }
+
+  # Ensure sequential creation to prevent AWS Global Accelerator concurrent modification locks
+  depends_on = [aws_globalaccelerator_endpoint_group.ga_endpoint_group]
 }

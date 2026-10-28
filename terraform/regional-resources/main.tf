@@ -13,9 +13,9 @@ module "vpc" {
   enable_dns_support      = true
   create_igw              = true
   map_public_ip_on_launch = true
-  enable_nat_gateway      = true
-  single_nat_gateway      = false
-  one_nat_gateway_per_az  = true
+  enable_nat_gateway      = var.enable_nat_gateway
+  single_nat_gateway      = true
+  one_nat_gateway_per_az  = false
   tags = {
     Name = "vpc"    
   }
@@ -28,17 +28,25 @@ module "security_group" {
   vpc_id = module.vpc.vpc_id
   ingress_rules = [
     {
+      description     = "HTTP Traffic"
+      from_port       = 80
+      to_port         = 80
+      protocol        = "tcp"
+      security_groups = []
+      cidr_blocks     = ["0.0.0.0/0"]
+    },
+    {
       description     = "ALL Traffic"
       from_port       = 0
       to_port         = 0
-      protocol        = "tcp"
+      protocol        = "-1"
       security_groups = []
       cidr_blocks     = ["0.0.0.0/0"]
     }
   ]
   egress_rules = [
     {
-      description     = "Allow outbound traffic to al"
+      description     = "Allow outbound traffic to all"
       from_port       = 0
       to_port         = 0
       protocol        = "-1"
@@ -68,10 +76,6 @@ data "aws_ami" "ubuntu" {
     owners = ["099720109477"]
 }
 
-data "aws_key_pair" "key_pair" {
-  key_name = "maxmaxkeypair"
-}
-
 # EC2 Instance
 module "ec2_instance" {
   source = "../modules/ec2"
@@ -79,7 +83,7 @@ module "ec2_instance" {
   instance_name               = "EC2 Machine"
   ami_id                      = data.aws_ami.ubuntu.id
   instance_type               = "t2.micro"
-  key_name                    = data.aws_key_pair.key_pair.key_name
+  key_name                    = var.key_name
   subnet_id                   = module.vpc.public_subnets[0]
   security_group_ids          = [module.security_group.id]
   associate_public_ip_address = true
